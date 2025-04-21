@@ -1,0 +1,71 @@
+
+{% extends "layout.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2>Monitoring Analytics</h2>
+            </div>
+            <div class="card-body">
+                <canvas id="monitoringChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Console Logs</h4>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearLogs()">Clear</button>
+            </div>
+            <div class="card-body p-0">
+                <div id="console-logs" class="console-wrapper"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('monitoringChart');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+            label: 'Monitored Products',
+            data: [12, 19, 3, 5, 2, 3],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// WebSocket connection for logs
+const consoleDiv = document.getElementById('console-logs');
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const ws = new WebSocket(`${protocol}//${window.location.host}/ws/logs`);
+
+ws.onmessage = function(event) {
+    const log = JSON.parse(event.data);
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${log.level}`;
+    logEntry.textContent = `[${log.timestamp}] ${log.message}`;
+    consoleDiv.appendChild(logEntry);
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+};
+
+function clearLogs() {
+    consoleDiv.innerHTML = '';
+}
+</script>
+{% endblock %}

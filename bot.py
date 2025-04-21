@@ -13,10 +13,16 @@ class ShopifyBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
         
+        application_id = os.getenv("APPLICATION_ID")
+        try:
+            application_id = int(application_id) if application_id else None
+        except ValueError:
+            application_id = None
+            
         super().__init__(
             command_prefix="/",
             intents=intents,
-            application_id=os.getenv("APPLICATION_ID")
+            application_id=application_id
         )
         
         # Initialize bot state

@@ -1,0 +1,29 @@
+ Environment updated. Reloading shell...
+2025-04-21 03:26:27,441 - __main__ - WARNING - DATABASE_URL not set. Using SQLite as default.
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 246, in <module>
+    main()
+  File "/home/runner/workspace/main.py", line 238, in main
+    start_bot()
+  File "/home/runner/workspace/main.py", line 140, in start_bot
+    bot_instance = ShopifyBot()
+                   ^^^^^^^^^^^^
+  File "/home/runner/workspace/bot.py", line 16, in __init__
+    super().__init__(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/bot.py", line 174, in __init__
+    super().__init__(intents=intents, **options)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/ext/commands/core.py", line 1310, in __init__
+    super().__init__(*args, **kwargs)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/client.py", line 308, in __init__
+    self._connection: ConnectionState[Self] = self._get_state(intents=intents, **options)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/client.py", line 342, in _get_state
+    return ConnectionState(dispatch=self.dispatch, handlers=self._handlers, hooks=self._hooks, http=self.http, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/state.py", line 201, in __init__
+    self.application_id: Optional[int] = utils._get_as_snowflake(options, 'application_id')
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/utils.py", line 621, in _get_as_snowflake
+    return value and int(value)
+                     ^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'dasds'

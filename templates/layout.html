@@ -59,8 +59,33 @@
     </div>
 
     <footer class="footer">
-        <div class="container text-center">
-            <p>Shopify Discord Bot &copy; 2025</p>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('index') }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('settings') }}">Bot Settings</a></li>
+                        <li><a href="/analytics">Analytics</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Commands</h5>
+                    <ul class="list-unstyled">
+                        <li>/start - Get Started</li>
+                        <li>/profile - Manage Profiles</li>
+                        <li>/monitor - Track Products</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Support</h5>
+                    <ul class="list-unstyled">
+                        <li>Version: 1.0.0</li>
+                        <li>Support Server: /support</li>
+                        <li>Shopify Discord Bot &copy; 2025</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </footer>
 

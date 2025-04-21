@@ -1,125 +1,358 @@
+
 {% extends "layout.html" %}
 
-{% block title %}- Home{% endblock %}
+{% block title %}- Dashboard{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h2>Shopify Discord Bot Dashboard</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card mb-4">
-                            <div class="card-header">Bot Status</div>
-                            <div class="card-body">
-                                {% if bot_running %}
-                                    <div class="alert alert-success">
-                                        <strong>Bot is running</strong>
-                                    </div>
-                                    <form action="{{ url_for('stop_bot_route') }}" method="post">
-                                        <button type="submit" class="btn btn-danger">Stop Bot</button>
-                                    </form>
-                                {% else %}
-                                    <div class="alert alert-warning">
-                                        <strong>Bot is not running</strong>
-                                    </div>
-                                    {% if token %}
-                                        <form action="{{ url_for('start_bot_route') }}" method="post">
-                                            <button type="submit" class="btn btn-success">Start Bot</button>
-                                        </form>
-                                    {% else %}
-                                        <div class="alert alert-danger">
-                                            <strong>Missing Discord Token!</strong> Please configure it in the <a href="{{ url_for('settings') }}">Settings</a> page.
-                                        </div>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">API Configuration</div>
-                            <div class="card-body">
-                                <p><strong>Discord Token:</strong> {% if token %}Set{% else %}<span class="text-danger">Not Set</span>{% endif %}</p>
-                                <p><strong>Application ID:</strong> {% if app_id %}Set{% else %}<span class="text-danger">Not Set</span>{% endif %}</p>
-                                <a href="{{ url_for('settings') }}" class="btn btn-primary">Manage Settings</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid">
+  <div class="row">
+    <!-- Left Column -->
+    <div class="col-md-8">
+      <!-- Bot Status Card -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4>Bot Status & Controls</h4>
+          <div class="bot-status-indicator" id="botStatusIndicator"></div>
         </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              {% if bot_running %}
+                <div class="alert alert-success">Bot is running</div>
+                <form action="{{ url_for('stop_bot_route') }}" method="post">
+                  <button type="submit" class="btn btn-danger">Stop Bot</button>
+                </form>
+              {% else %}
+                <div class="alert alert-warning">Bot is not running</div>
+                {% if token %}
+                  <form action="{{ url_for('start_bot_route') }}" method="post">
+                    <button type="submit" class="btn btn-success">Start Bot</button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <div class="stats-container">
+                <div class="stat-item">
+                  <span class="stat-label">Uptime:</span>
+                  <span id="botUptime">0:00:00</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Active Tasks:</span>
+                  <span id="activeTasks">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Memory Usage:</span>
+                  <span id="memoryUsage">0 MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4>Quick Actions</h4>
+        </div>
+        <div class="card-body">
+          <div class="quick-actions">
+            <button class="btn btn-primary" onclick="refreshMonitors()">
+              <i class="fas fa-sync"></i> Refresh Monitors
+            </button>
+            <button class="btn btn-warning" onclick="clearTasks()">
+              <i class="fas fa-broom"></i> Clear Tasks
+            </button>
+            <button class="btn btn-info" onclick="exportStats()">
+              <i class="fas fa-download"></i> Export Stats
+            </button>
+            <button class="btn btn-secondary" onclick="showSettings()">
+              <i class="fas fa-cog"></i> Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Task Monitor -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between">
+          <h4>Active Tasks Monitor</h4>
+          <div class="btn-group">
+            <button class="btn btn-sm btn-outline-primary" onclick="filterTasks('all')">All</button>
+            <button class="btn btn-sm btn-outline-success" onclick="filterTasks('running')">Running</button>
+            <button class="btn btn-sm btn-outline-warning" onclick="filterTasks('pending')">Pending</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="taskMonitor" class="task-monitor"></div>
+        </div>
+      </div>
+
+      <!-- Performance Metrics -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4>Performance Metrics</h4>
+        </div>
+        <div class="card-body">
+          <canvas id="performanceChart"></canvas>
+        </div>
+      </div>
     </div>
+
+    <!-- Right Column -->
+    <div class="col-md-4">
+      <!-- Console Output -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4>Console Output</h4>
+          <div>
+            <button class="btn btn-sm btn-outline-danger" onclick="clearLogs()">Clear</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="exportLogs()">Export</button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div id="console-logs" class="console-wrapper"></div>
+        </div>
+      </div>
+
+      <!-- Notifications Center -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4>Notifications</h4>
+        </div>
+        <div class="card-body">
+          <div id="notificationCenter" class="notification-center"></div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card">
+        <div class="card-header">
+          <h4>Quick Stats</h4>
+        </div>
+        <div class="card-body">
+          <div class="quick-stats">
+            <div class="stat-card">
+              <div class="stat-title">Success Rate</div>
+              <div class="stat-value" id="successRate">0%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Avg Response</div>
+              <div class="stat-value" id="avgResponse">0ms</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Active Users</div>
+              <div class="stat-value" id="activeUsers">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h3>Commands Reference</h3>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Command</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><code>/start</code></td>
-                                <td>Start using the Shopify bot</td>
-                            </tr>
-                            <tr>
-                                <td><code>/profile &lt;profile_name&gt;</code></td>
-                                <td>Create a checkout profile</td>
-                            </tr>
-                            <tr>
-                                <td><code>/list_profiles</code></td>
-                                <td>List your saved profiles</td>
-                            </tr>
-                            <tr>
-                                <td><code>/delete_profile &lt;profile_name&gt;</code></td>
-                                <td>Delete a saved profile</td>
-                            </tr>
-                            <tr>
-                                <td><code>/monitor &lt;product_url&gt; [notify]</code></td>
-                                <td>Monitor a Shopify product</td>
-                            </tr>
-                            <tr>
-                                <td><code>/stop_monitor &lt;monitor_id&gt;</code></td>
-                                <td>Stop monitoring a product</td>
-                            </tr>
-                            <tr>
-                                <td><code>/list_monitors</code></td>
-                                <td>List your active monitors</td>
-                            </tr>
-                            <tr>
-                                <td><code>/add_task &lt;product_url&gt; &lt;profile_name&gt; [quantity] [auto_checkout]</code></td>
-                                <td>Add a checkout task</td>
-                            </tr>
-                            <tr>
-                                <td><code>/run_task &lt;task_id&gt;</code></td>
-                                <td>Run a specific checkout task</td>
-                            </tr>
-                            <tr>
-                                <td><code>/cancel_task &lt;task_id&gt;</code></td>
-                                <td>Cancel a checkout task</td>
-                            </tr>
-                            <tr>
-                                <td><code>/list_tasks</code></td>
-                                <td>List your checkout tasks</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+.bot-status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #dc3545;
+}
+
+.bot-status-indicator.active {
+  background-color: #28a745;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.console-wrapper {
+  background: #1e1e1e;
+  color: #fff;
+  font-family: monospace;
+  height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  font-size: 12px;
+}
+
+.task-monitor {
+  height: 300px;
+  overflow-y: auto;
+}
+
+.notification-center {
+  height: 200px;
+  overflow-y: auto;
+}
+
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 15px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 10px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 8px;
+}
+
+.stat-title {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+
+.log-entry {
+  margin: 2px 0;
+  word-wrap: break-word;
+}
+
+.log-info { color: #4CAF50; }
+.log-error { color: #f44336; }
+.log-warning { color: #ff9800; }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+<script>
+// WebSocket setup
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const ws = new WebSocket(`${protocol}//${window.location.host}/ws/logs`);
+
+// Console logging
+ws.onmessage = function(event) {
+  const log = JSON.parse(event.data);
+  const logEntry = document.createElement('div');
+  logEntry.className = `log-entry log-${log.level}`;
+  logEntry.textContent = `[${log.timestamp}] ${log.message}`;
+  const consoleDiv = document.getElementById('console-logs');
+  consoleDiv.appendChild(logEntry);
+  consoleDiv.scrollTop = consoleDiv.scrollHeight;
+};
+
+// Performance Chart
+const ctx = document.getElementById('performanceChart');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'CPU Usage',
+      data: [],
+      borderColor: '#4CAF50',
+      tension: 0.4
+    }, {
+      label: 'Memory Usage',
+      data: [],
+      borderColor: '#2196F3',
+      tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+});
+
+// Task Management
+function filterTasks(filter) {
+  // Implement task filtering logic
+}
+
+function refreshMonitors() {
+  fetch('/refresh_monitors')
+    .then(response => response.json())
+    .then(data => updateMonitorDisplay(data));
+}
+
+function clearTasks() {
+  if(confirm('Are you sure you want to clear all tasks?')) {
+    fetch('/clear_tasks', { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        if(data.success) {
+          document.getElementById('taskMonitor').innerHTML = '';
+        }
+      });
+  }
+}
+
+function exportStats() {
+  // Implement stats export
+}
+
+function exportLogs() {
+  const logs = document.getElementById('console-logs').innerText;
+  const blob = new Blob([logs], { type: 'text/plain' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bot_logs.txt';
+  a.click();
+}
+
+// Real-time updates
+setInterval(() => {
+  fetch('/api/stats')
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('botUptime').textContent = data.uptime;
+      document.getElementById('activeTasks').textContent = data.activeTasks;
+      document.getElementById('memoryUsage').textContent = data.memoryUsage;
+      document.getElementById('successRate').textContent = data.successRate;
+      document.getElementById('avgResponse').textContent = data.avgResponse;
+      document.getElementById('activeUsers').textContent = data.activeUsers;
+    });
+}, 5000);
+
+// Notification system
+function addNotification(message, type = 'info') {
+  const notificationCenter = document.getElementById('notificationCenter');
+  const notification = document.createElement('div');
+  notification.className = `alert alert-${type} alert-dismissible fade show`;
+  notification.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+  notificationCenter.appendChild(notification);
+}
+
+// Initialize components
+document.addEventListener('DOMContentLoaded', function() {
+  if({{ bot_running|tojson }}) {
+    document.getElementById('botStatusIndicator').classList.add('active');
+  }
+});
+</script>
 {% endblock %}

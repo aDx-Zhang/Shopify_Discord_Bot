@@ -10,6 +10,15 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
+async def send_restock_notification(bot, user_id, product_url, quantity):
+    user = await bot.fetch_user(user_id)
+    embed = discord.Embed(
+        title="Product Restocked!",
+        description=f"Product {product_url} is back in stock!\nQuantity: {quantity}",
+        color=discord.Color.green()
+    )
+    await user.send(embed=embed)
+
 class ShopifyMonitor:
     def __init__(self, product_url: str, bot, user_id: int, notify: bool = True):
         """Initialize the Shopify product monitor.
