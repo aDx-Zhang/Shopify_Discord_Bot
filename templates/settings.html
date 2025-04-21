@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+
+{% block title %}- Settings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h2>Bot Settings</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('settings') }}">
+                    <div class="mb-3">
+                        <label for="discord_token" class="form-label">Discord Token</label>
+                        <input type="password" class="form-control" id="discord_token" name="discord_token" value="{{ token or '' }}" required>
+                        <div class="form-text">Your Discord bot token from the <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="application_id" class="form-label">Application ID</label>
+                        <input type="text" class="form-control" id="application_id" name="application_id" value="{{ app_id or '' }}" required>
+                        <div class="form-text">Your Discord application ID from the <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.</div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Setup Instructions</h3>
+            </div>
+            <div class="card-body">
+                <h4 class="mb-3">How to Create a Discord Bot</h4>
+                <ol>
+                    <li>Go to the <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a> and log in.</li>
+                    <li>Click the "New Application" button in the top right corner.</li>
+                    <li>Enter a name for your application and click "Create".</li>
+                    <li>In the left sidebar, click on "Bot".</li>
+                    <li>Click "Add Bot" and confirm by clicking "Yes, do it!"</li>
+                    <li>Under the "TOKEN" section, click "Reset Token" and confirm. Copy the generated token and paste it in the "Discord Token" field above.</li>
+                    <li>Go back to the "General Information" tab from the sidebar. Copy the "APPLICATION ID" and paste it in the "Application ID" field above.</li>
+                    <li>In the left sidebar, click on "OAuth2" and then "URL Generator".</li>
+                    <li>Under "SCOPES", select "bot" and "applications.commands".</li>
+                    <li>Under "BOT PERMISSIONS", select the permissions your bot needs (at minimum: "Send Messages", "Read Messages/View Channels", "Use Slash Commands").</li>
+                    <li>Copy the generated URL at the bottom and open it in a new tab to invite the bot to your server.</li>
+                </ol>
+                
+                <h4 class="mb-3">Required Bot Permissions</h4>
+                <ul>
+                    <li>Send Messages</li>
+                    <li>Read Messages/View Channels</li>
+                    <li>Use Slash Commands</li>
+                    <li>Send Messages in Threads</li>
+                    <li>Send Messages in Forums</li>
+                </ul>
+                
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> Keep your Discord Token secret! Anyone with your token can control your bot.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Show password toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const tokenField = document.getElementById('discord_token');
+        
+        if (tokenField) {
+            const showPasswordCheckbox = document.createElement('div');
+            showPasswordCheckbox.className = 'form-check mt-2';
+            showPasswordCheckbox.innerHTML = `
+                <input class="form-check-input" type="checkbox" id="showToken">
+                <label class="form-check-label" for="showToken">
+                    Show token
+                </label>
+            `;
+            
+            tokenField.parentNode.appendChild(showPasswordCheckbox);
+            
+            document.getElementById('showToken').addEventListener('change', function() {
+                if (this.checked) {
+                    tokenField.type = 'text';
+                } else {
+                    tokenField.type = 'password';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

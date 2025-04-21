@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+
+{% block title %}- Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h2>Shopify Discord Bot Dashboard</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Bot Status</div>
+                            <div class="card-body">
+                                {% if bot_running %}
+                                    <div class="alert alert-success">
+                                        <strong>Bot is running</strong>
+                                    </div>
+                                    <form action="{{ url_for('stop_bot_route') }}" method="post">
+                                        <button type="submit" class="btn btn-danger">Stop Bot</button>
+                                    </form>
+                                {% else %}
+                                    <div class="alert alert-warning">
+                                        <strong>Bot is not running</strong>
+                                    </div>
+                                    {% if token %}
+                                        <form action="{{ url_for('start_bot_route') }}" method="post">
+                                            <button type="submit" class="btn btn-success">Start Bot</button>
+                                        </form>
+                                    {% else %}
+                                        <div class="alert alert-danger">
+                                            <strong>Missing Discord Token!</strong> Please configure it in the <a href="{{ url_for('settings') }}">Settings</a> page.
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">API Configuration</div>
+                            <div class="card-body">
+                                <p><strong>Discord Token:</strong> {% if token %}Set{% else %}<span class="text-danger">Not Set</span>{% endif %}</p>
+                                <p><strong>Application ID:</strong> {% if app_id %}Set{% else %}<span class="text-danger">Not Set</span>{% endif %}</p>
+                                <a href="{{ url_for('settings') }}" class="btn btn-primary">Manage Settings</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Commands Reference</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Command</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>/start</code></td>
+                                <td>Start using the Shopify bot</td>
+                            </tr>
+                            <tr>
+                                <td><code>/profile &lt;profile_name&gt;</code></td>
+                                <td>Create a checkout profile</td>
+                            </tr>
+                            <tr>
+                                <td><code>/list_profiles</code></td>
+                                <td>List your saved profiles</td>
+                            </tr>
+                            <tr>
+                                <td><code>/delete_profile &lt;profile_name&gt;</code></td>
+                                <td>Delete a saved profile</td>
+                            </tr>
+                            <tr>
+                                <td><code>/monitor &lt;product_url&gt; [notify]</code></td>
+                                <td>Monitor a Shopify product</td>
+                            </tr>
+                            <tr>
+                                <td><code>/stop_monitor &lt;monitor_id&gt;</code></td>
+                                <td>Stop monitoring a product</td>
+                            </tr>
+                            <tr>
+                                <td><code>/list_monitors</code></td>
+                                <td>List your active monitors</td>
+                            </tr>
+                            <tr>
+                                <td><code>/add_task &lt;product_url&gt; &lt;profile_name&gt; [quantity] [auto_checkout]</code></td>
+                                <td>Add a checkout task</td>
+                            </tr>
+                            <tr>
+                                <td><code>/run_task &lt;task_id&gt;</code></td>
+                                <td>Run a specific checkout task</td>
+                            </tr>
+                            <tr>
+                                <td><code>/cancel_task &lt;task_id&gt;</code></td>
+                                <td>Cancel a checkout task</td>
+                            </tr>
+                            <tr>
+                                <td><code>/list_tasks</code></td>
+                                <td>List your checkout tasks</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
