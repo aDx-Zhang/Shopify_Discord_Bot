@@ -18,47 +18,85 @@ class ProfileCommands(commands.Cog):
     @app_commands.command(name="start", description="Start using the Shopify bot")
     async def start(self, interaction: discord.Interaction):
         """Command to start using the bot."""
-        user_id = str(interaction.user.id)
-        
-        # Load existing user data or create new
-        user_data = load_user_data(user_id)
-        if not user_data:
-            user_data = {
-                "profiles": [],
-                "monitoring_tasks": [],
-                "checkout_tasks": []
-            }
-            save_user_data(user_id, user_data)
-        
-        embed = discord.Embed(
-            title="Welcome to Shopify Bot",
-            description="Thanks for using the Shopify Bot! Here are the available commands:",
-            color=discord.Color.blue()
-        )
-        
-        embed.add_field(name="/profile", value="Create a checkout profile", inline=False)
-        embed.add_field(name="/monitor", value="Monitor a Shopify product", inline=False)
-        embed.add_field(name="/add_task", value="Add a checkout task", inline=False)
-        embed.add_field(name="/list_profiles", value="List your saved profiles", inline=False)
-        embed.add_field(name="/list_tasks", value="List your active tasks", inline=False)
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            user_id = str(interaction.user.id)
+            
+            # Load existing user data or create new
+            user_data = load_user_data(user_id)
+            if not user_data:
+                user_data = {
+                    "profiles": [],
+                    "monitoring_tasks": [],
+                    "checkout_tasks": []
+                }
+                save_user_data(user_id, user_data)
+            
+            embed = discord.Embed(
+                title="Welcome to Shopify Bot",
+                description="Thanks for using the Shopify Bot! Here are the available commands:",
+                color=discord.Color.blue()
+            )
+            
+            embed.add_field(name="/profile", value="Create a checkout profile", inline=False)
+            embed.add_field(name="/monitor", value="Monitor a Shopify product", inline=False)
+            embed.add_field(name="/add_task", value="Add a checkout task", inline=False)
+            embed.add_field(name="/list_profiles", value="List your saved profiles", inline=False)
+            embed.add_field(name="/list_tasks", value="List your active tasks", inline=False)
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in start command: {e}")
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("An error occurred. Please try again.", ephemeral=True)
+                else:
+                    await interaction.followup.send("An error occurred. Please try again.", ephemeral=True)
+            except Exception as e:
+                logger.error(f"Error sending error message: {e}")
+    
+    async def create_dm_with_retry(self, user, max_retries=3, delay=2.0):
+        """Create DM channel with retry logic."""
+        for attempt in range(max_retries):
+            try:
+                return await user.create_dm()
+            except discord.HTTPException as e:
+                if e.code == 40003 and attempt < max_retries - 1:  # Rate limit error
+                    await asyncio.sleep(delay * (attempt + 1))  # Exponential backoff
+                    continue
+                raise
     
     @app_commands.command(name="profile", description="Create a new checkout profile")
     async def profile(self, interaction: discord.Interaction, profile_name: str):
         """Command to create a new checkout profile."""
-        user_id = str(interaction.user.id)
-        
         try:
-            # Send initial DM to user
-            dm_channel = await interaction.user.create_dm()
+            await interaction.response.defer(ephemeral=True)
             
+            user_id = str(interaction.user.id)
+            
+            # Check if profile creation is already in progress
+            if user_id in self.profile_creation_cache:
+                await interaction.followup.send("You already have a profile creation in progress. Please complete or cancel it first.", ephemeral=True)
+                return
+                
+            try:
+                dm_channel = await self.create_dm_with_retry(interaction.user)
+            except discord.Forbidden:
+                await interaction.followup.send("I couldn't send you a DM. Please enable DMs from server members.", ephemeral=True)
+                return
+            except Exception as e:
+                logger.error(f"Error creating DM channel: {e}")
+                await interaction.followup.send("Failed to create DM channel. Please try again in a few moments.", ephemeral=True)
+                return
+
             # Initialize the profile creation process
             self.profile_creation_cache[user_id] = {
                 "step": 1,
                 "profile_name": profile_name,
                 "data": {},
-                "dm_channel": dm_channel.id
+                "channel_id": dm_channel.id
             }
             
             embed = discord.Embed(
@@ -72,15 +110,20 @@ class ProfileCommands(commands.Cog):
                 value="Please enter your email address",
                 inline=False
             )
-            
+
+            # Send messages
+            await interaction.followup.send("Check your DMs to complete profile creation!", ephemeral=True)
             await dm_channel.send(embed=embed)
-            await interaction.response.send_message("Check your DMs to complete profile creation!", ephemeral=True)
-            
-        except discord.Forbidden:
-            await interaction.response.send_message("I couldn't send you a DM. Please enable DMs from server members.", ephemeral=True)
+
         except Exception as e:
             logger.error(f"Error in profile creation: {e}")
-            await interaction.response.send_message("An error occurred. Please try again.", ephemeral=True)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("An error occurred. Please try again.", ephemeral=True)
+                else:
+                    await interaction.followup.send("An error occurred. Please try again.", ephemeral=True)
+            except Exception as e:
+                logger.error(f"Error sending error message: {e}")
     
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -95,10 +138,10 @@ class ProfileCommands(commands.Cog):
             
         # Verify this is the correct channel
         cache = self.profile_creation_cache[user_id]
-        if message.channel.id != cache.get('channel_id'):
+        if message.channel.id != cache['channel_id']:
             return
-        
-        profile_cache = self.profile_creation_cache[user_id]
+            
+        profile_cache = cache
         step = profile_cache["step"]
         content = message.content.strip()
         
@@ -167,7 +210,11 @@ class ProfileCommands(commands.Cog):
         )
         embed.add_field(name="Instructions", value=prompt, inline=False)
         
-        await message.channel.send(embed=embed)
+        try:
+            await message.author.send(embed=embed)
+        except discord.Forbidden:
+            await message.channel.send("Error: Could not send DM. Please enable DMs from server members.")
+            del self.profile_creation_cache[user_id]
     
     async def _save_profile(self, message, user_id):
         """Save the completed profile to the user's data."""
@@ -243,42 +290,74 @@ class ProfileCommands(commands.Cog):
     @app_commands.command(name="edit_profile", description="Edit an existing profile")
     async def edit_profile(self, interaction: discord.Interaction, profile_name: str):
         """Command to edit an existing profile."""
-        user_id = str(interaction.user.id)
-        user_data = load_user_data(user_id)
-        
-        if not user_data or not user_data.get("profiles"):
-            await interaction.response.send_message("You don't have any profiles to edit.", ephemeral=True)
-            return
+        try:
+            await interaction.response.defer(ephemeral=True)
             
-        # Find the profile
-        for profile in user_data["profiles"]:
-            if profile["name"] == profile_name:
-                # Start edit process
-                self.profile_creation_cache[user_id] = {
-                    "step": 1,
-                    "profile_name": profile_name,
-                    "data": profile.copy(),
-                    "is_editing": True,
-                    "channel_id": interaction.channel_id
-                }
-                
-                embed = discord.Embed(
-                    title="Profile Editing",
-                    description=f"Editing profile: {profile_name}",
-                    color=discord.Color.blue()
-                )
-                
-                embed.add_field(
-                    name="Step 1 of 9: Email",
-                    value="Please enter your new email address (or type 'skip' to keep current)",
-                    inline=False
-                )
-                
-                await interaction.response.defer(ephemeral=True)
-                await interaction.followup.send(embed=embed, ephemeral=True)
+            user_id = str(interaction.user.id)
+            user_data = load_user_data(user_id)
+            
+            if not user_data or not user_data.get("profiles"):
+                await interaction.followup.send("You don't have any profiles to edit.", ephemeral=True)
                 return
                 
-        await interaction.response.send_message(f"Profile '{profile_name}' not found.", ephemeral=True)
+            # Check if profile creation is already in progress
+            if user_id in self.profile_creation_cache:
+                await interaction.followup.send("You already have a profile edit in progress. Please complete or cancel it first.", ephemeral=True)
+                return
+
+            # Try to create DM channel first
+            try:
+                dm_channel = await self.create_dm_with_retry(interaction.user)
+            except discord.Forbidden:
+                await interaction.followup.send("I couldn't send you a DM. Please enable DMs from server members.", ephemeral=True)
+                return
+            except Exception as e:
+                logger.error(f"Error creating DM channel: {e}")
+                await interaction.followup.send("Failed to create DM channel. Please try again in a few moments.", ephemeral=True)
+                return
+            
+            # Find the profile
+            profile_found = False
+            for profile in user_data["profiles"]:
+                if profile["name"] == profile_name:
+                    profile_found = True
+                    # Start edit process
+                    self.profile_creation_cache[user_id] = {
+                        "step": 1,
+                        "profile_name": profile_name,
+                        "data": profile.copy(),
+                        "is_editing": True,
+                        "channel_id": dm_channel.id
+                    }
+                    
+                    embed = discord.Embed(
+                        title="Profile Editing",
+                        description=f"Editing profile: {profile_name}",
+                        color=discord.Color.blue()
+                    )
+                    
+                    embed.add_field(
+                        name="Step 1 of 9: Email",
+                        value="Please enter your new email address (or type 'skip' to keep current)",
+                        inline=False
+                    )
+                    
+                    await interaction.followup.send("Check your DMs to edit your profile!", ephemeral=True)
+                    await dm_channel.send(embed=embed)
+                    return
+                    
+            if not profile_found:
+                await interaction.followup.send(f"Profile '{profile_name}' not found.", ephemeral=True)
+                
+        except Exception as e:
+            logger.error(f"Error in profile editing: {e}")
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("An error occurred. Please try again.", ephemeral=True)
+                else:
+                    await interaction.followup.send("An error occurred. Please try again.", ephemeral=True)
+            except Exception as e:
+                logger.error(f"Error sending error message: {e}")
 
     @app_commands.command(name="delete_profile", description="Delete a saved checkout profile")
     async def delete_profile(self, interaction: discord.Interaction, profile_name: str):

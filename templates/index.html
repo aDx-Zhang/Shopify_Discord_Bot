@@ -29,6 +29,21 @@
                     <button type="submit" class="btn btn-success">Start Bot</button>
                   </form>
                 {% endif %}
+
+.task-item {
+  transition: all 0.3s ease;
+}
+
+.task-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 12px;
+}
+
               {% endif %}
             </div>
             <div class="col-md-6">
@@ -90,7 +105,7 @@
       </div>
 
       <!-- Performance Metrics -->
-      <div class="card mb-4">
+      <div class="card mb-4" style="display: none;">
         <div class="card-header">
           <h4>Performance Metrics</h4>
         </div>
@@ -181,8 +196,12 @@
 }
 
 .task-monitor {
-  height: 300px;
+  height: 521px;
   overflow-y: auto;
+}
+
+:root {
+  --bs-body-bg: #000000;
 }
 
 .notification-center {
@@ -287,8 +306,55 @@ new Chart(ctx, {
 
 // Task Management
 function filterTasks(filter) {
-  // Implement task filtering logic
+  const taskMonitor = document.getElementById('taskMonitor');
+  const tasks = taskMonitor.querySelectorAll('.task-item');
+  
+  tasks.forEach(task => {
+    if (filter === 'all' || task.dataset.status === filter) {
+      task.style.display = 'block';
+    } else {
+      task.style.display = 'none';
+    }
+  });
 }
+
+// Function to fetch and display tasks
+async function updateTaskMonitor() {
+  try {
+    const response = await fetch('/api/tasks');
+    const tasks = await response.json();
+    const taskMonitor = document.getElementById('taskMonitor');
+    
+    if (!tasks || tasks.length === 0) {
+      taskMonitor.innerHTML = '<div class="alert alert-info">No active tasks found</div>';
+      return;
+    }
+    
+    const taskHtml = tasks.map(task => `
+      <div class="task-item card mb-2" data-status="${task.active ? 'running' : 'pending'}">
+        <div class="card-body">
+          <h5 class="card-title">Task ID: ${task.id}</h5>
+          <p class="card-text">
+            Product URL: ${task.product_url}<br>
+            Profile: ${task.profile_name}<br>
+            Quantity: ${task.quantity}<br>
+            Status: ${task.active ? '<span class="badge bg-success">Running</span>' : '<span class="badge bg-warning">Pending</span>'}
+          </p>
+        </div>
+      </div>
+    `).join('');
+    
+    taskMonitor.innerHTML = taskHtml;
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    document.getElementById('taskMonitor').innerHTML = '<div class="alert alert-danger">Error loading tasks</div>';
+  }
+}
+
+// Update task monitor every 5 seconds
+setInterval(updateTaskMonitor, 5000);
+// Initial load
+updateTaskMonitor();
 
 function refreshMonitors() {
   fetch('/refresh_monitors')

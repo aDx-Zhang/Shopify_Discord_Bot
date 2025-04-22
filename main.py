@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from bot import ShopifyBot
 import threading
 import models
-from models import Setting, db
+from models import Setting, Task, Profile, db
 import json
 
 from datetime import datetime
@@ -167,6 +167,52 @@ def stop_bot():
             logger.info("Discord bot stopped")
         except Exception as e:
             logger.error(f"Error stopping bot: {e}")
+
+
+
+
+@app.route('/api/tasks')
+def get_tasks():
+    """Get all tasks from both database and user_data files"""
+    try:
+        tasks = []
+        # Get tasks from user_data files
+        user_data_dir = 'user_data'
+        if os.path.exists(user_data_dir):
+            for filename in os.listdir(user_data_dir):
+                if filename.endswith('.json'):
+                    with open(os.path.join(user_data_dir, filename)) as f:
+                        user_data = json.load(f)
+                        if 'checkout_tasks' in user_data:
+                            for task in user_data['checkout_tasks']:
+                                if task.get('active', True):  # Only include active tasks
+                                    tasks.append({
+                                        'id': task['id'],
+                                        'product_url': task['product_url'],
+                                        'quantity': task.get('quantity', 1),
+                                        'active': True,
+                                        'profile_name': task.get('profile_name', 'N/A')
+                                    })
+
+        # Also get tasks from database
+        with app.app_context():
+            db_tasks = Task.query.all()
+            for task in db_tasks:
+                profile = Profile.query.get(task.profile_id)
+                profile_name = profile.name if profile else 'N/A'
+                tasks.append({
+                    'id': task.task_id,
+                    'product_url': task.product_url,
+                    'quantity': task.quantity,
+                    'active': task.active,
+                    'profile_name': profile_name
+                })
+                
+        logger.info(f"Fetched {len(tasks)} tasks")
+        return jsonify(tasks)
+    except Exception as e:
+        logger.error(f"Error fetching tasks: {e}")
+        return jsonify([])
 
 
 @app.route('/')

@@ -14,6 +14,35 @@
             "card_month": "12",
             "card_year": "1234",
             "card_cvv": "123"
+        },
+        {
+            "name": "adx",
+            "email": "sohail@gmail.com",
+            "first_name": "adx",
+            "last_name": "aax",
+            "address1": "123456",
+            "city": "asddsaads",
+            "zip": "123655",
+            "phone": "155897465256",
+            "card_number": "123456789",
+            "card_month": "12",
+            "card_year": "1234",
+            "card_cvv": "356"
+        },
+        {
+            "name": "ADX1",
+            "email": "ADX@A.COM",
+            "first_name": "ads",
+            "last_name": "as",
+            "address1": "as",
+            "address2": "as",
+            "city": "as",
+            "zip": "456789+",
+            "phone": "123456789",
+            "card_number": "123333",
+            "card_month": "12",
+            "card_year": "1234",
+            "card_cvv": "456"
         }
     ],
     "monitoring_tasks": [
@@ -43,6 +72,22 @@
             "id": "914ac0a9-100b-49d2-af5a-777ed1d3f6a9",
             "product_url": "https://shop-example.myshopify.com/products/test test_profile",
             "profile_name": "a",
+            "quantity": 1,
+            "auto_checkout": true,
+            "active": true
+        },
+        {
+            "id": "4ba735dd-bca8-48e8-a136-1c38a25a2347",
+            "product_url": "https://shop-example.myshopify.com/products/test test_profile",
+            "profile_name": "adx",
+            "quantity": 1,
+            "auto_checkout": true,
+            "active": true
+        },
+        {
+            "id": "0bae5329-2a52-48e8-bcf0-db1166517d24",
+            "product_url": "https://shop-example.myshopify.com/products/test test_profile",
+            "profile_name": "adx",
             "quantity": 1,
             "auto_checkout": true,
             "active": true
