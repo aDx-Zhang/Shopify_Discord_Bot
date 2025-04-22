@@ -17,4 +17,6 @@ dependencies = [
     "requests>=2.32.3",
     "sqlalchemy>=2.0.40",
     "trafilatura>=2.0.0",
+    "psutil>=7.0.0",
+    "schedule>=1.2.2",
 ]

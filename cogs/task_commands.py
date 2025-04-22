@@ -180,6 +180,33 @@ class TaskCommands(commands.Cog):
             ephemeral=True
         )
     
+    @app_commands.command(name="edit_task", description="Edit an existing checkout task")
+    async def edit_task(self, interaction: discord.Interaction, task_id: str, product_url: str = None, 
+                       profile_name: str = None, quantity: int = None):
+        """Command to edit an existing task."""
+        user_id = str(interaction.user.id)
+        user_data = load_user_data(user_id)
+        
+        if not user_data or not user_data.get("checkout_tasks"):
+            await interaction.response.send_message("You don't have any tasks to edit.", ephemeral=True)
+            return
+            
+        # Find and update the task
+        for task in user_data["checkout_tasks"]:
+            if task["id"] == task_id:
+                if product_url:
+                    task["product_url"] = product_url
+                if profile_name:
+                    task["profile_name"] = profile_name
+                if quantity:
+                    task["quantity"] = quantity
+                    
+                save_user_data(user_id, user_data)
+                await interaction.response.send_message(f"Task {task_id} has been updated.", ephemeral=True)
+                return
+                
+        await interaction.response.send_message(f"Task {task_id} not found.", ephemeral=True)
+
     @app_commands.command(name="list_tasks", description="List all your checkout tasks")
     async def list_tasks(self, interaction: discord.Interaction):
         """Command to list all checkout tasks for the user."""

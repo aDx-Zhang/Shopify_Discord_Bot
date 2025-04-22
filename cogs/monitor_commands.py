@@ -6,8 +6,29 @@ import logging
 import re
 from typing import Dict, List, Optional
 import uuid
+import asyncio
 from utils.database import save_user_data, load_user_data
 from utils.shopify_monitor import ShopifyMonitor
+from utils.task_scheduler import TaskScheduler
+
+class RestockMonitor:
+    def __init__(self, bot):
+        self.bot = bot
+        self.active_monitors = {}
+        self.scheduler = TaskScheduler()
+        
+    async def monitor_product(self, product_url: str, user_id: str, notify: bool = True):
+        monitor = ShopifyMonitor(product_url)
+        while True:
+            try:
+                if await monitor.check_stock():
+                    if notify:
+                        user = await self.bot.fetch_user(int(user_id))
+                        await user.send(f"🔔 Restock detected for {product_url}")
+                    return True
+            except Exception as e:
+                logger.error(f"Monitor error: {e}")
+            await asyncio.sleep(5)
 
 logger = logging.getLogger(__name__)
 

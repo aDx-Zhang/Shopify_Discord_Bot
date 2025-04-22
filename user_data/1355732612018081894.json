@@ -1,5 +1,65 @@
 {
-    "profiles": [],
-    "monitoring_tasks": [],
-    "checkout_tasks": []
+    "profiles": [
+        {
+            "name": "a",
+            "email": "ass@gmail,com",
+            "first_name": "aa",
+            "last_name": "aaaa",
+            "address1": "saas",
+            "address2": "sdds",
+            "city": "dssd",
+            "zip": "sdsd",
+            "phone": "ds515",
+            "card_number": "1322",
+            "card_month": "12",
+            "card_year": "1234",
+            "card_cvv": "123"
+        }
+    ],
+    "monitoring_tasks": [
+        {
+            "id": "6761c7d8-5d79-4898-82ed-4399dcd51c06",
+            "product_url": "https://shop-example.myshopify.com/products/test true",
+            "notify": true,
+            "active": true
+        },
+        {
+            "id": "deb0c1e7-f9fe-4599-af2a-a53b90f77e42",
+            "product_url": "https://shop-example.myshopify.com/products/test true",
+            "notify": true,
+            "active": false
+        }
+    ],
+    "checkout_tasks": [
+        {
+            "id": "182a6b92-3272-4a1e-9ad6-2e125ccf5b87",
+            "product_url": "https://shop-example.myshopify.com/products/test test_profile",
+            "profile_name": "a",
+            "quantity": 1,
+            "auto_checkout": true,
+            "active": true
+        },
+        {
+            "id": "914ac0a9-100b-49d2-af5a-777ed1d3f6a9",
+            "product_url": "https://shop-example.myshopify.com/products/test test_profile",
+            "profile_name": "a",
+            "quantity": 1,
+            "auto_checkout": true,
+            "active": true
+        }
+    ],
+    "price_alerts": [
+        {
+            "id": "1c94a493-815a-451c-adc7-e4bba59d9e11",
+            "product_url": "https://shop-example.myshopify.com/products/test",
+            "target_price": 100.0,
+            "active": true
+        },
+        {
+            "id": "8e2b3bd9-23bc-4472-a966-e7d5d2e90718",
+            "product_url": "https://shop-example.myshopify.com/products/test",
+            "target_price": 100.0,
+            "active": true
+        }
+    ]
 }

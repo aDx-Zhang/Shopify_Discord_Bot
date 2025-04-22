@@ -49,36 +49,53 @@ class ProfileCommands(commands.Cog):
         """Command to create a new checkout profile."""
         user_id = str(interaction.user.id)
         
-        # Initialize the profile creation process
-        self.profile_creation_cache[user_id] = {
-            "step": 1,
-            "profile_name": profile_name,
-            "data": {}
-        }
-        
-        embed = discord.Embed(
-            title="Profile Creation",
-            description=f"Creating profile: {profile_name}",
-            color=discord.Color.green()
-        )
-        
-        embed.add_field(
-            name="Step 1 of 9: Email",
-            value="Please enter your email address",
-            inline=False
-        )
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        try:
+            # Send initial DM to user
+            dm_channel = await interaction.user.create_dm()
+            
+            # Initialize the profile creation process
+            self.profile_creation_cache[user_id] = {
+                "step": 1,
+                "profile_name": profile_name,
+                "data": {},
+                "dm_channel": dm_channel.id
+            }
+            
+            embed = discord.Embed(
+                title="Profile Creation",
+                description=f"Creating profile: {profile_name}",
+                color=discord.Color.green()
+            )
+            
+            embed.add_field(
+                name="Step 1 of 9: Email",
+                value="Please enter your email address",
+                inline=False
+            )
+            
+            await dm_channel.send(embed=embed)
+            await interaction.response.send_message("Check your DMs to complete profile creation!", ephemeral=True)
+            
+        except discord.Forbidden:
+            await interaction.response.send_message("I couldn't send you a DM. Please enable DMs from server members.", ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error in profile creation: {e}")
+            await interaction.response.send_message("An error occurred. Please try again.", ephemeral=True)
     
     @commands.Cog.listener()
     async def on_message(self, message):
         """Listen for messages for the profile creation workflow."""
-        # Ignore messages from bots or in non-DM channels
-        if message.author.bot or not isinstance(message.channel, discord.DMChannel):
+        # Ignore messages from bots
+        if message.author.bot:
             return
-        
+            
         user_id = str(message.author.id)
         if user_id not in self.profile_creation_cache:
+            return
+            
+        # Verify this is the correct channel
+        cache = self.profile_creation_cache[user_id]
+        if message.channel.id != cache.get('channel_id'):
             return
         
         profile_cache = self.profile_creation_cache[user_id]
@@ -223,6 +240,46 @@ class ProfileCommands(commands.Cog):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="edit_profile", description="Edit an existing profile")
+    async def edit_profile(self, interaction: discord.Interaction, profile_name: str):
+        """Command to edit an existing profile."""
+        user_id = str(interaction.user.id)
+        user_data = load_user_data(user_id)
+        
+        if not user_data or not user_data.get("profiles"):
+            await interaction.response.send_message("You don't have any profiles to edit.", ephemeral=True)
+            return
+            
+        # Find the profile
+        for profile in user_data["profiles"]:
+            if profile["name"] == profile_name:
+                # Start edit process
+                self.profile_creation_cache[user_id] = {
+                    "step": 1,
+                    "profile_name": profile_name,
+                    "data": profile.copy(),
+                    "is_editing": True,
+                    "channel_id": interaction.channel_id
+                }
+                
+                embed = discord.Embed(
+                    title="Profile Editing",
+                    description=f"Editing profile: {profile_name}",
+                    color=discord.Color.blue()
+                )
+                
+                embed.add_field(
+                    name="Step 1 of 9: Email",
+                    value="Please enter your new email address (or type 'skip' to keep current)",
+                    inline=False
+                )
+                
+                await interaction.response.defer(ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+                
+        await interaction.response.send_message(f"Profile '{profile_name}' not found.", ephemeral=True)
+
     @app_commands.command(name="delete_profile", description="Delete a saved checkout profile")
     async def delete_profile(self, interaction: discord.Interaction, profile_name: str):
         """Command to delete a saved profile."""
@@ -234,15 +291,18 @@ class ProfileCommands(commands.Cog):
             return
         
         # Find and remove the profile
+        profile_found = False
         for i, profile in enumerate(user_data["profiles"]):
             if profile["name"] == profile_name:
                 del user_data["profiles"][i]
                 save_user_data(user_id, user_data)
-                
-                await interaction.response.send_message(f"Profile '{profile_name}' has been deleted.", ephemeral=True)
-                return
+                profile_found = True
+                break
         
-        await interaction.response.send_message(f"Profile '{profile_name}' not found.", ephemeral=True)
+        if profile_found:
+            await interaction.response.send_message(f"Profile '{profile_name}' has been successfully deleted!", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Profile '{profile_name}' not found.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(ProfileCommands(bot))

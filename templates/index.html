@@ -322,19 +322,29 @@ function exportLogs() {
   a.click();
 }
 
-// Real-time updates
-setInterval(() => {
-  fetch('/api/stats')
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById('botUptime').textContent = data.uptime;
-      document.getElementById('activeTasks').textContent = data.activeTasks;
-      document.getElementById('memoryUsage').textContent = data.memoryUsage;
-      document.getElementById('successRate').textContent = data.successRate;
-      document.getElementById('avgResponse').textContent = data.avgResponse;
-      document.getElementById('activeUsers').textContent = data.activeUsers;
-    });
-}, 5000);
+// Real-time updates with guaranteed 1-second interval
+let lastUpdate = 0;
+function updateStats() {
+  const now = Date.now();
+  if (now - lastUpdate >= 1000) {
+    lastUpdate = now;
+    fetch('/api/stats')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('botUptime').textContent = data.uptime;
+        document.getElementById('activeTasks').textContent = data.activeTasks;
+        document.getElementById('memoryUsage').textContent = data.memoryUsage;
+        document.getElementById('successRate').textContent = data.successRate;
+        document.getElementById('avgResponse').textContent = data.avgResponse;
+        document.getElementById('activeUsers').textContent = data.activeUsers;
+      })
+      .catch(error => console.error('Error fetching stats:', error));
+  }
+  requestAnimationFrame(updateStats);
+}
+
+// Start continuous updates
+updateStats();
 
 // Notification system
 function addNotification(message, type = 'info') {

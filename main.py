@@ -4,7 +4,7 @@ import logging
 from flask_sock import Sock
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from bot import ShopifyBot
 import threading
@@ -161,9 +161,12 @@ def stop_bot():
     global bot_instance
     if bot_instance:
         logger.info("Stopping Discord bot...")
-        bot_instance.close()
-        bot_instance = None
-        logger.info("Discord bot stopped")
+        try:
+            asyncio.run_coroutine_threadsafe(bot_instance.close(), bot_instance.loop)
+            bot_instance = None
+            logger.info("Discord bot stopped")
+        except Exception as e:
+            logger.error(f"Error stopping bot: {e}")
 
 
 @app.route('/')
@@ -180,6 +183,23 @@ def index():
                            app_id=app_id,
                            bot_running=bot_running)
 
+
+async def init_bot():
+    """Initialize the Discord bot"""
+    bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+    
+    # Load all cogs
+    cogs = ['price_commands', 'store_commands', 'task_commands', 
+            'profile_commands', 'monitor_commands']
+    
+    for cog in cogs:
+        try:
+            await bot.load_extension(f'cogs.{cog}')
+            logger.info(f"Loaded extension: {cog}")
+        except Exception as e:
+            logger.error(f"Failed to load extension {cog}: {e}")
+    
+    return bot
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
